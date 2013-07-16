@@ -1,0 +1,20 @@
+Grid:
+- For logically-Cartesian grids, a simple n-dimensional array will suffice.
+- If I need edge states, probably best to borrow FLASH's idea of having an
+  x-face, y-face, and z-face grid instead of trying to do some crazy method to
+  combine them all into a single all-faces grid.  Especially as I don't usually
+  need all faces at the same time (e.g., usually only need faces in one
+  direction because that is the direction of the current Riemann solve)
+- AMR will be another project for another day, but I need to make the grid
+  general enough that changing to AMR will fit in (e.g., query the grid for
+  details that are resolution- or geometry-dependent instead of assuming)
+- The grid needs to know about it's geometry:
+  - Geometry type (e.g., Cartesian vs spherical, etc)
+  - Dimensionality
+  - Cell center and edge/corner coordinates
+  - Face surface area (for all surfaces)
+  - Cell volume
+  - As a special grid, I should implement generalized orthogonal coordinates
+    and have a list of choices (need to compare the results from the
+    generalized grid to the specific grids; i.e., compare the generalized grid
+    in spherical mode to the spherical grid, etc)

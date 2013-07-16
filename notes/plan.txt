@@ -1,0 +1,51 @@
+Start with
+- linear advection of one variable
+- 1D
+- Cartesian
+- uniform grid
+- serial
+
+Generalizations:
+- linear advection of one variable
+  - multiple variables (one advection speed)
+  - multiple variables (different advection speeds)
+  - nonlinear advection (advecting the velocity itself as one of the variables)
+  - coupled/nonlinear equations (e.g. 1D adiabatic Euler)
+  - full Euler
+- 1D
+  - 2D
+  - 3D
+- Cartesian
+  - polar
+  - cylindrical
+  - spherical
+  - generalized orthogonal coordinates
+- uniform grid
+  - AMR
+  - moving mesh (e.g. AREPO)
+- serial
+  - parallel (distributed memory)
+  - parallel (shared memory? multicore processors? hybrid?)
+- equation of state
+  - gamma-law EoS
+  - general EoS
+- Riemann solver
+  - linearized Riemann solver
+  - general Riemann solver
+- reconstruction
+  - Godunov (piecewise constant)
+  - general reconstruction
+    - non-limited piecewise linear
+    - MUSCL
+    - PPM
+- sources
+  - sourceless
+  - sources
+    - heating/cooling
+    - external gravity
+    - self-gravity
+    - diffusive processes (like viscosity)
+- species
+  - one species
+  - multiple (non-reacting) species
+  - reactive hydro (reactions act as sources/sinks, so do sources first)

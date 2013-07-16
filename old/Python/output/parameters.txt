@@ -1,0 +1,13 @@
+[ Grid ]
+   nx : 1000
+   xmin : -5.0
+   xmax : 5.0
+[ CommandLine ]
+   config_file : config.ini
+[ Driver ]
+   tmax : 300
+   max_iter : 999999
+   output_dt : 50.0
+[ Hydro ]
+   v_adv : 1.0
+   f_cfl : 0.8

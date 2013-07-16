@@ -1,0 +1,122 @@
+_______________________________________________________________________________
+Main
+
+- Due to the way Python handles modules, the original calling module is not
+  called by name buy is called "__main__", so the Main module exists solely to
+  not have to worry about it.  It only calls Driver.main()
+
+_______________________________________________________________________________
+Driver
+
+- The Driver runs the program.  It maintains the core loop and everything
+  branches from the Driver.  It also does housekeeping on things like the
+  current and final time and iteration number.
+
+- module-scope variables
+  - MAX_ITER
+  - output_dt
+  - time
+  - tmax
+
+- main()
+  - The core of the program.  Calls the setup routine, then has the evolution
+    loop, then has the shutdown/cleanup stuff.
+- init()
+  - Does program and Driver initialization, including parsing the program
+    options.
+  - Calls all other initialization routines.
+- parse_command_line()
+  - Parse the options on the command line.  Right now that's limited to only
+    the name of the configuration file.
+- parse_config_file()
+  - Parse the options in the configuration file and sort them by module.
+- compute_time_step()
+  - Compute the current time step.  Each component may have some limitations on
+    the time step.  This is a single package that fetches all those time step
+    limitations and synthesizes them into a single time step.
+- finalize()
+  - Shuts down the program, including any program/Driver clean up and the calls
+    to all the module-specific shut down routines.
+
+_______________________________________________________________________________
+Grid
+
+- The Grid manages the physical grid for the simulations and holds the data.
+
+- module-scope variables:
+  - Ng: number of guard cells
+  - Nx: number of body cells in the x direction
+  - xmin/xmax: the limits in the x direction
+  - dx: the step size in the x direction
+  - x: the x-positions for each cell
+  - data: the data on the grid
+
+- init()
+  - takes as argument the parameters for the Grid (derived from the
+    configuration file)
+  - performs the initialization: based on the parameters, determine the data
+    array sizes, allocate the arrays, and compute the coordinates
+- fill_boundary_conditions()
+  - fills the guard cells based on the boundary conditions
+- write_data()
+  - takes as argument the number for the current step (if this can be saved
+    into a module-level variable in the Driver like with the current time,
+    there would be no need to pass it)
+  - creates the output files to store the current state of the simulation
+  - as I develop, this will likely be split off into a new module that manages
+    the saving and reading of data
+- finalize()
+  - shuts down the Grid unit; for Python there's no real need to deallocate, so
+    this does nothing
+
+_______________________________________________________________________________
+Hydro
+
+- The Hydro module controls the hydrodynamics of the simulation.
+
+- module-scope variables:
+  - v_adv: the advection speed
+  - f_cfl: the maximum allowed fraction of a CFL time step
+
+- init()
+  - takes as argument the parameters for the Hydro module
+  - sets up the Hydro module; in this case it only saves a few parameters
+- compute_time_step()
+  - Computes the CFL time step, then scales it down by f_cfl
+- one_step()
+  - takes as argument the current time step
+  - manages a single step of the hydrodynamics: computation of fluxes, then
+    update (these are separated so that things like AMR flux correction can be
+    implemented in future versions)
+- compute_fluxes()
+  - manages the flux calculation
+  - following the usual Godunov outline, this involves calculating the two
+    states that feed into the Riemann solve for each interface, followed by the
+    actual Riemann solve to compute the fluxes at the interfaces
+- reconstruction()
+  - calculates the face states based on the cell center states
+  - returns the two state that are fed into the Riemann solve
+- riemann()
+  - takes the two states for each interface
+  - computes the flux
+  - this is a very simple solver right now, so it simply chooses the upwind
+    state and multiplies by the advection velocity
+- finalize()
+  - does nothing right now
+
+_______________________________________________________________________________
+IC
+
+- The IC module sets up the initial conditions for the simulation
+  - I should probably have some better name; this essentially will encapsulate
+    all the problem-specific initialization
+
+- no module-scope variables
+
+- set_initial_conditions()
+  - fills the grid with the initial conditions
+
+_______________________________________________________________________________
+
+
+

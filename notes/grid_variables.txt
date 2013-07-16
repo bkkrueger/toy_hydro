@@ -1,0 +1,24 @@
+Grid variable ideas
+(1) The grid data object has to have a std::string => unsigned mapping so you
+    "index" with the name of the variable and that gets translated to the
+    appropriate index.
+    --> Extra layer in accessing; likely to cause significant slowdown.
+(2) The grid has a mapping separate from the data object, the setup() for each
+    component will access that mapping and store a namespace-wide index for the
+    variables used by that component.
+    --> Adds an extra layer of work to the setup() routine that the user has to
+        create.
+(3) A configuration script analyses which variables each component needs and
+    creates const unsigned index variables in the Grid that the other
+    components use to access the data object.
+    --> Requires a configuration script, which adds an extra layer of work to
+        starting a problem.
+    --> May be required for other reasons anyway?
+(4) Template metaprogramming?
+    --> I don't yet know how to do this
+    --> This may add extreme complication to the code and/or compilation, or
+        add requirements about minimum compiler, etc
+(5) Two passes: one pass through all modules to call get_variables() then a
+    second pass through all modules to call setup().  Then each setup() routine
+    will save a local copy of the important indices by reading from the
+    "string-indexed" list stored by the Grid.

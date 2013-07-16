@@ -1,0 +1,10 @@
+Have a Definitions unit or something like that.
+
+Each unit will add appropriate definitions (like the Flash.h).  For example, if
+you include one of the Gravity units, on loading the Gravity unit will add a
+Gravity variable to the Definitions unit, and perhaps a gacc_variable.  Then on
+initialization, Gravity unit will add to the Grid unit a new grid variable,
+something like "Grid.gacc = Grid.new_variable(Grid.SCALAR,Grid.CENTER)".
+Similarly, the Hydro units will have things like:
+   "Grid.dens = Grid.new_variable(Grid.SCALAR, Grid.CENTER)"
+   "Grid.momentum = Grid.new_variable(Grid.VECTOR, Grid.CENTER)"

@@ -1,0 +1,35 @@
+- Model somewhat after INI files (especially as many INI file parsers exist)
+- A section for each unit, with the unit parameters listed there; this allows
+  us to ignore the need to differentiate parameters by prepending a
+  unit-specific prefix (in the code a similar function will be filled by the
+  namespace: e.g., you will have Gravity::active and HeatSource::active instead
+  of FLASH's grv_useGravity and heat_useHeat)
+- For my own sanity, I will use '#' as the comment character (the default for
+  INI files is ';')
+
+
+
+Example:
+# =============================================================================
+
+# This simulation uses constant gravity, so the acceleration must be specified
+[ Gravity ]
+   active       = true    # turn gravity on
+   acceleration = 980.665 # cm / s^2
+
+[ HeatSource ]
+   active = true  # turn heating on
+   coef   = 7.379 # (erg / cm^3) / s
+
+[ Grid ]
+   rmin = 6.371e8 # cm (radius of the Earth)
+   rmax = 6.471e8 # cm (100 km atmosphere)
+   Nr   = 1000
+   model_file = "Earth_atm.dat"
+
+# =============================================================================
+
+
+
+
+

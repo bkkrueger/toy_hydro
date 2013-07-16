@@ -1,0 +1,50 @@
+- Similarly to FLASH, the code will be organized into units
+- Each unit will have a _template implementation, and all other implementations
+  will exist as modifications to the _template (e.g., if you don't add a
+  Unit_init file to your implementation, then the _template/Unit_init file will
+  be used)
+- Each units needs:
+  - Unit test (may need to be overridden by other units that have special
+    requirements: e.g., inverse-squared gravity is easy to test, but self
+    gravity requires a grid be set up and is therefore more complex)
+  - Documentation (see below)
+  - A database
+  - An API
+  - An initialization routine
+  - A termination routine
+  - A Makefile
+    - Do I want a basic unit Makefile that implementations add to, or should
+      each implementation have a complete and independent Makefile?
+  - A configuration file (specifying any runtime parameters, other required
+    units, etc)
+- For C++, units will have a header file and a collection of CPP files.  The
+  header file will contain a namespace (same name as the unit) that contains
+  the variables (serves as the database) and the function prototypes (serves as
+  the API).  The functions will be implemented in the CPP files (probably best
+  to do one file per function, but that can be left to the user, as there may
+  be some logical grouping that makes it easier).
+- Any code that needs to access something from the unit will include the header
+- I should make a python routine that helps manage units.  Units can be made by
+  the user easily as with FLASH, but for those who want a little help, the
+  routine can construct a unit after the user answers some questions (including
+  the _template implementation), and can add new implementations to existing
+  units.  Depending on what changes are desired, it may even be able to edit
+  existing implementations.
+- I should also include documentation.  Probably best to do some sort of
+  distributed documentation (think MAESTRO, but spread throughout the code), so
+  that each unit and each implementation will have a _doc folder that contains
+  the documentation for that section.  Like in MAESTRO, it will be set up to be
+  just the body of that section, and then there will be a doc.txt or something
+  like that which will compile all the documents for that section and all
+  subsections.  For example, the documentation for an implementation will
+  construct a document that describes just that documentation, while the
+  documentation for a unit will construct a document that describes the unit
+  and includes a section discussing the different implementations (each as a
+  subsection).  Extending that, there will be a master document that discusses
+  the code itself, then has a part about the units (each unit as a
+  chapter), and under the units will be a section about implementations (each
+  implementation as a subsection).
+- Do I also want to include "attributes"?  For example, a gravity module may
+  specify that it is time-independent vs. time-dependent, a grid may specify
+  that it is uniform, structured but non-uniform, or unstructured as well as
+  time-invariant or able to change over time.
