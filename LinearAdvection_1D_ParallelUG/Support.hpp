@@ -35,6 +35,17 @@ class DelayedConst {
          return val; 
       }
 
+      // Read the value (explicit case to base type)
+      T value() const {
+         assert(assigned);
+         return val;
+      }
+
+      // Has the value been set?
+      bool is_set() const {
+         return assigned;
+      }
+
 };
 
 #endif // ifndef SUPPORT_HPP

@@ -11,17 +11,18 @@
 // Boost includes
 
 // Includes specific to this code
+#include "Support.hpp"
 
 namespace Driver {
 
    // component-scope variables
    extern unsigned int n_step;
-   extern unsigned int max_steps;
-   extern unsigned int n_width;
+   extern DelayedConst<unsigned int> max_steps;
+   extern DelayedConst<unsigned int> n_width;
 
    extern double dt;
    extern double time;
-   extern double tmax;
+   extern DelayedConst<double> tmax;
 
    extern double output_dt;
 
@@ -29,9 +30,9 @@ namespace Driver {
    extern std::string restart_dir;
 
 #ifdef PARALLEL_MPI
-   extern int n_procs, proc_ID;
-   extern int p_width;
-   extern int neigh_lo, neigh_hi;
+   extern DelayedConst<int> n_procs, proc_ID;
+   extern DelayedConst<unsigned int> p_width;
+   extern DelayedConst<int> neigh_lo, neigh_hi;
 #endif // end ifdef PARALLEL_MPI
 
    // =========================================================================

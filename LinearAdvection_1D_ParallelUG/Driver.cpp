@@ -22,6 +22,7 @@
 #include "Log.hpp"
 #include "Monitor.hpp"
 #include "Parameters.hpp"
+#include "Support.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -29,12 +30,12 @@ namespace Driver {
 
    // component-scope variables
    unsigned int n_step = 0;
-   unsigned int max_steps = 0;
-   unsigned int n_width;
+   DelayedConst<unsigned int> max_steps;
+   DelayedConst<unsigned int> n_width;
 
    double dt;
    double time = 0.0;
-   double tmax = 0.0;
+   DelayedConst<double> tmax;
 
    double output_dt = 0.0;
 
@@ -42,9 +43,9 @@ namespace Driver {
    std::string restart_dir;
 
 #ifdef PARALLEL_MPI
-   int n_procs, proc_ID;
-   int p_width;
-   int neigh_lo, neigh_hi;
+   DelayedConst<int> n_procs, proc_ID;
+   DelayedConst<unsigned int> p_width;
+   DelayedConst<int> neigh_lo, neigh_hi;
 #endif // end ifdef PARALLEL_MPI
 
    // =========================================================================
@@ -59,6 +60,7 @@ namespace Driver {
 #ifdef PARALLEL_MPI
       int mpi_return;
 #endif // end ifdef PARALLEL_MPI
+      int temp_int;
 
       // ----------------------------------------------------------------------
       // MPI
@@ -69,8 +71,10 @@ namespace Driver {
          std::cerr << "MPI_Init failed" << std::endl;
          MPI_Abort(MPI_COMM_WORLD, mpi_return);
       }
-      MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
-      MPI_Comm_rank(MPI_COMM_WORLD, &proc_ID);
+      MPI_Comm_size(MPI_COMM_WORLD, &temp_int);
+      n_procs = temp_int;
+      MPI_Comm_rank(MPI_COMM_WORLD, &temp_int);
+      proc_ID = temp_int;
       p_width = floor(log10(n_procs)) + 1;
       if (proc_ID == 0) {
          neigh_lo = n_procs - 1;

@@ -8,21 +8,22 @@
 // Boost includes
 
 // Includes specific to this code
-#include "Array.hpp"
+#include "GridVars.hpp"
+#include "Support.hpp"
 
 namespace Grid {
 
    // component-scope variables
-   extern unsigned int Ng;     // the number of guard cells around the borders
+   extern DelayedConst<unsigned int> Ng;     // the number of guard cells around the borders
 
-   extern unsigned int Nx_global;
-   extern unsigned int Nx_local;
-   extern double xmin, xmax;   // limits in the x direction
-   extern double dx;           // grid spacing in the x direction
+   extern DelayedConst<unsigned int> Nx_global;
+   extern DelayedConst<unsigned int> Nx_local;
+   extern DelayedConst<double> xmin, xmax;   // limits in the x direction
+   extern DelayedConst<double> dx;           // grid spacing in the x direction
 
-   extern Array x;             // array of x coordinates
-   extern Array data;          // the data grid
-   extern int ilo, ihi;        // Arrays include indices ilo to ihi-1
+   extern CellVar x;             // array of x coordinates
+   extern CellVar data;          // the data grid
+   extern DelayedConst<int> ilo, ihi;  // arrays include indices ilo to ihi-1
 
    // =========================================================================
    // Set up

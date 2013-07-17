@@ -17,27 +17,30 @@
 #endif // end ifdef PARALLEL_MPI
 
 // Includes specific to this code
-#include "Array.hpp"
 #include "Driver.hpp"
 #include "Grid.hpp"
+#include "GridVars.hpp"
 #include "Log.hpp"
 #include "Parameters.hpp"
+#include "Support.hpp"
 
 namespace fs = boost::filesystem;
 
 namespace Grid {
 
    // component-scope variables
-   unsigned int Ng;     // the number of guard cells around the borders
+   DelayedConst<unsigned int> Ng; // number of guard cells around the borders
 
-   unsigned int Nx_global; // number of internal (non-guard) cells (global)
-   unsigned int Nx_local;  // number of internal cells (on this processor)
-   double xmin, xmax;   // limits in the x direction
-   double dx;           // grid spacing in the x direction
+   // number of internal (non-guard) cells
+   DelayedConst<unsigned int> Nx_global; // globally
+   DelayedConst<unsigned int> Nx_local;  // on this processor
 
-   Array x;             // array of x coordinates
-   Array data;          // the data grid
-   int ilo, ihi;        // Arrays include indices ilo to ihi-1
+   DelayedConst<double> xmin, xmax;   // limits in the x direction
+   DelayedConst<double> dx;           // grid spacing in the x direction
+
+   CellVar x;             // array of x coordinates
+   CellVar data;          // the data grid
+   DelayedConst<int> ilo, ihi; // arrays include indices ilo to ihi-1
 
    // =========================================================================
    // Set up
@@ -85,7 +88,8 @@ namespace Grid {
       ihi = Nx_global + Ng;
       Nx_local = Nx_global;
 #endif // end ifdef PARALLEL_MPI
-      x.resize(ilo,ihi);
+      // TODO : I should make sure that Nx_local > Ng
+      x.init();
       for (int i = ilo; i < ihi; i++) {
          x[i] = xmin + dx * (i + 0.5);
       }
@@ -104,7 +108,7 @@ namespace Grid {
 
 
       // Set up the grid
-      data.resize(ilo,ihi);
+      data.init();
 
    }
 
@@ -112,8 +116,7 @@ namespace Grid {
    // Clean up
 
    void cleanup () {
-      x.resize(0);
-      data.resize(0);
+      // Does nothing
    }
 
    // =========================================================================
@@ -124,8 +127,8 @@ namespace Grid {
       // Declare some variables
       MPI_Request requests[4];   // Two sends and two receives (1 up, 1 down)
       MPI_Status  statuses[4];   // Statuses of sends/receives
-      double lo_recv[Ng], hi_recv[Ng];
-      double lo_send[Ng], hi_send[Ng];
+      double lo_recv[Ng.value()], hi_recv[Ng.value()];
+      double lo_send[Ng.value()], hi_send[Ng.value()];
       int pass_up = 1;
       int pass_down = 2;
       int mpi_return;

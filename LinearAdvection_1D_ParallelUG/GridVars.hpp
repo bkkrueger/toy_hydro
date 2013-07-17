@@ -7,7 +7,12 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "Grid.hpp"
+
 namespace Grid {
+
+   extern DelayedConst<unsigned int> Ng, Nx_local;
+   extern DelayedConst<int> ilo, ihi;
 
    // =========================================================================
    // Cell-centered variables
@@ -45,16 +50,17 @@ namespace Grid {
             assert(!uninitialized);
             if (idx < ilo) {
                std::stringstream ss;
-               ss << "out of range in Array : " << idx << " < " << ilo;
+               ss << "out of range in CellVar : " << idx << " < " << ilo;
                throw std::out_of_range(ss.str());
-            } else if (ihi <= i) {
+            } else if (ihi <= idx) {
                std::stringstream ss;
-               ss << "out of range in Array : " << idx << " > " << ihi-1;
+               ss << "out of range in CellVar : " << idx << " > " << ihi-1;
                throw std::out_of_range(ss.str());
             } else {
                return data[idx-ilo];
             }
          }
+   };
 
    // =========================================================================
    // Face-centered variables
@@ -92,11 +98,11 @@ namespace Grid {
             assert(!uninitialized);
             if (idx < ilo) {
                std::stringstream ss;
-               ss << "out of range in Array : " << idx << " < " << ilo;
+               ss << "out of range in FaceVar : " << idx << " < " << ilo;
                throw std::out_of_range(ss.str());
-            } else if (ihi-1 <= i) {
+            } else if (ihi-1 <= idx) {
                std::stringstream ss;
-               ss << "out of range in Array : " << idx << " > " << ihi-2;
+               ss << "out of range in FaceVar : " << idx << " > " << ihi-2;
                throw std::out_of_range(ss.str());
             } else {
                return data[idx-ilo];

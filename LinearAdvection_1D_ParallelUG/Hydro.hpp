@@ -8,7 +8,7 @@
 // Boost includes
 
 // Includes specific to this code
-#include "Array.hpp"
+#include "GridVars.hpp"
 
 namespace Hydro {
 
@@ -35,13 +35,14 @@ namespace Hydro {
 
    void one_step ();
 
-   void compute_fluxes (Array &fluxes);
+   void compute_fluxes (Grid::FaceVar &fluxes);
 
-   void reconstruction(Array &lower, Array &upper);
+   void reconstruction(Grid::FaceVar &lower, Grid::FaceVar &upper);
 
-   void riemann (Array &lower, Array &upper, Array &fluxes);
+   void riemann (Grid::FaceVar &lower, Grid::FaceVar &upper,
+         Grid::FaceVar &fluxes);
 
-   void update (Array &fluxes);
+   void update (Grid::FaceVar &fluxes);
 
 }
 
