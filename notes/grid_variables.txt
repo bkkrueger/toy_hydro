@@ -22,3 +22,30 @@ Grid variable ideas
     second pass through all modules to call setup().  Then each setup() routine
     will save a local copy of the important indices by reading from the
     "string-indexed" list stored by the Grid.
+
+_______________________________________________________________________________
+
+
+Grid::Variable
+- virtual class?  read up to remind myself if this is the appropriate thing
+- has data
+- has size
+  - or size may be optional as Grid maintains it
+  - except Grid::Nx (and similar) could be tweaked by someone messing with them
+  - ideas?  http://stackoverflow.com/questions/7880170/a-variable-that-is-read-only-after-assignment-at-run-time
+    - if I do manage to create a one-change-only double, then need a flag to
+      specify that it has been set, raise exception if not set
+- has offset (to allow index to range over arbitrary start:end)
+- argument-less constructor only (size taken from Grid)
+- destructor
+- index: operator[]
+- upper and lower limits
+- specializes to:
+  - Grid::CellVariable
+    - size Nx --- references Grid::Nx so all CellVariables are constant size
+    - in future: size Ni x Nj x Nk
+  - Grid::FaceVariable
+    - size Nx-1
+    - in future: FaceVariable<i>, FaceVariable<j>, FaceVariable<k> (or
+      iFaceVariable or FaceVariable(i) or other)
+      - size (Ni-1) x Nj x Nk or Ni x (Nj-1) x Nk or Ni x Nj x (Nk-1)
