@@ -1,3 +1,4 @@
+// TODO --- need to modify to handle parallel; see Log for comparison
 #include "Defines.hpp"
 
 // STL includes
@@ -9,7 +10,6 @@
 // Boost includes
 
 // Includes specific to this code
-#include "Array.hpp"
 #include "Driver.hpp"
 #include "Grid.hpp"
 #include "Hydro.hpp"

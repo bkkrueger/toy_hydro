@@ -6,9 +6,9 @@
 // Boost includes
 
 // Includes specific to this code
-#include "Array.hpp"
 #include "Driver.hpp"
 #include "Grid.hpp"
+#include "GridVars.hpp"
 #include "Hydro.hpp"
 #include "Parameters.hpp"
 
@@ -61,7 +61,7 @@ namespace Hydro {
       // ----------------------------------------------------------------------
       // Declare variables
 
-      Array fluxes;
+      Grid::FaceVar fluxes;
 
       // ----------------------------------------------------------------------
       // Hydro step
@@ -77,12 +77,12 @@ namespace Hydro {
    // =========================================================================
    // Compute the fluxes
 
-   void compute_fluxes (Array &fluxes) {
+   void compute_fluxes (Grid::FaceVar &fluxes) {
 
       // ----------------------------------------------------------------------
       // Declare variables
 
-      Array upper, lower;
+      Grid::FaceVar upper, lower;
 
       // ----------------------------------------------------------------------
       // Compute the fluxes
@@ -99,7 +99,7 @@ namespace Hydro {
    // Reconstruct the lower/upper states for the Riemann problem at each cell
    // interface.
 
-   void reconstruction(Array &lower, Array &upper) {
+   void reconstruction(Grid::FaceVar &lower, Grid::FaceVar &upper) {
 
       // ----------------------------------------------------------------------
       // Declare variables
@@ -110,8 +110,8 @@ namespace Hydro {
       // ----------------------------------------------------------------------
       // Reconstruct
 
-      lower.resize(ilo,ihi);
-      upper.resize(ilo,ihi);
+      lower.init();
+      upper.init();
       for (int i = ilo; i < ihi; i++) {
          lower[i] = Grid::data[i];
          upper[i] = Grid::data[i+1];
@@ -122,7 +122,8 @@ namespace Hydro {
    // =========================================================================
    // Solve the Riemann problem at each cell interface
 
-   void riemann (Array &lower, Array &upper, Array &fluxes) {
+   void riemann (Grid::FaceVar &lower, Grid::FaceVar &upper,
+         Grid::FaceVar &fluxes) {
 
       // ----------------------------------------------------------------------
       // Declare variables
@@ -133,7 +134,7 @@ namespace Hydro {
       // ----------------------------------------------------------------------
       // Solve the Riemann problem
 
-      fluxes.resize(ilo,ihi);
+      fluxes.init();
 
       if (v_adv == 0) {
          for (int i = ilo; i < ihi; i++) {
@@ -154,7 +155,7 @@ namespace Hydro {
    // =========================================================================
    // Update the cell values based on the fluxes
 
-   void update (Array &fluxes) {
+   void update (Grid::FaceVar &fluxes) {
 
       // ----------------------------------------------------------------------
       // Declare variables

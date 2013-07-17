@@ -16,17 +16,17 @@ $(OBJDIR)/Main.o : Main.cpp \
 	$(CCOMP) $(FLAGS) -o $(OBJDIR)/Main.o -c Main.cpp
 
 $(OBJDIR)/Driver.o : Driver.cpp Driver.hpp \
-							Log.hpp Parameters.hpp \
+							Log.hpp Parameters.hpp Support.hpp \
 	                  Defines.hpp $(OBJDIR)
 	$(CCOMP) $(FLAGS) -o $(OBJDIR)/Driver.o -c Driver.cpp
 
 $(OBJDIR)/Grid.o : Grid.cpp Grid.hpp \
-	                Array.hpp Driver.hpp Log.hpp \
+	                Driver.hpp GridVars.hpp Log.hpp Support.hpp \
 						 Defines.hpp $(OBJDIR)
 	$(CCOMP) $(FLAGS) -o $(OBJDIR)/Grid.o -c Grid.cpp
 
 $(OBJDIR)/Hydro.o : Hydro.cpp Hydro.hpp \
-	                 Array.hpp Driver.hpp Grid.hpp \
+	                 Driver.hpp Grid.hpp GridVars.hpp \
 						  Defines.hpp $(OBJDIR)
 	$(CCOMP) $(FLAGS) -o $(OBJDIR)/Hydro.o -c Hydro.cpp
 
