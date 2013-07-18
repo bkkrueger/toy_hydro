@@ -30,10 +30,10 @@ namespace Hydro {
       // Initialize the Hydro component
 
       // Advection speed
-      v_adv = Parameters::parameter_with_default<double>("Hydro.v_adv", 1.0);
+      v_adv = Parameters::get_optional<double>("Hydro.v_adv", 1.0);
 
       // Maximum allowed fraction of a CFL time step
-      f_cfl = Parameters::parameter_with_default<double>("Hydro.f_cfl", 0.75);
+      f_cfl = Parameters::get_optional<double>("Hydro.f_cfl", 0.75);
 
    }
 

@@ -14,6 +14,7 @@ namespace Hydro {
 
    // component-scope variables
    extern double v_adv;     // The advection speed
+   const int min_guard = 1;
 
    // =========================================================================
    // Set up

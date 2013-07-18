@@ -7,7 +7,7 @@ OBJDIR = build
 
 Main :  $(OBJDIR)/Main.o $(OBJDIR)/Driver.o $(OBJDIR)/Grid.o \
 	$(OBJDIR)/Hydro.o $(OBJDIR)/InitConds.o $(OBJDIR)/Log.o \
-	$(OBJDIR)/Monitor.o $(OBJDIR)/Parameters.o
+	$(OBJDIR)/Parameters.o
 	$(CCOMP) $(FLAGS) $(LDFLAGS) -o Main $(OBJDIR)/*.o
 
 $(OBJDIR)/Main.o : Main.cpp \
@@ -34,11 +34,6 @@ $(OBJDIR)/InitConds.o : InitConds.cpp InitConds.hpp \
 	                     Driver.hpp Grid.hpp \
 								Defines.hpp $(OBJDIR)
 	$(CCOMP) $(FLAGS) -o $(OBJDIR)/InitConds.o -c InitConds.cpp
-
-$(OBJDIR)/Monitor.o : Monitor.cpp Monitor.hpp \
-	                   Driver.hpp Grid.hpp \
-							 Defines.hpp $(OBJDIR)
-	$(CCOMP) $(FLAGS) -o $(OBJDIR)/Monitor.o -c Monitor.cpp
 
 $(OBJDIR)/Parameters.o : Parameters.cpp Parameters.hpp \
 								 Driver.hpp Log.hpp \

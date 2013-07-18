@@ -2,6 +2,7 @@
 
 // STL includes
 #include <fstream>
+#include <sstream>
 #include <string>
 
 // Boost includes
@@ -13,19 +14,18 @@
 
 // Includes specific to this code
 #include "Driver.hpp"
+#include "Log.hpp"
 #include "Parameters.hpp"
 
 namespace Log {
-
-   // TODO : If a write is attempted before the logfile is opened, save the
-   //        output in a queue.  Once the file is opened, empty the queue into
-   //        the file.  If the queue is non-empty when cleanup() is called,
-   //        print the results of the queue to the screen instead.
 
    // component-scope variables
    const unsigned int log_master = 0;
    std::string log_file;
    std::ofstream lout;
+
+   bool initialized = false;
+   std::stringstream buffer;
 
    // =========================================================================
    // Set up
@@ -36,9 +36,11 @@ namespace Log {
       // Initialize the Log component
 
       // Name of log file
-      log_file = Parameters::parameter_with_default<std::string>(
+      log_file = Parameters::get_optional<std::string>(
             "Log.log_file", "log.txt");
       log_file = Driver::output_dir + log_file;
+
+      // Open log file
 #ifdef PARALLEL_MPI
       if (Driver::proc_ID == log_master) {
          lout.open(log_file.c_str());
@@ -46,6 +48,15 @@ namespace Log {
 #else // PARALLEL_MPI
       lout.open(log_file.c_str());
 #endif // PARALLEL_MPI
+      initialized = true;
+
+      // Write the log file header
+      lout << "Hydrodynamics Simulation" << std::endl << std::endl;
+
+      // If the buffer is not empty, push it to the file
+      lout << buffer.str();
+      buffer.clear();
+      buffer.str("");
 
    }
 
@@ -54,33 +65,30 @@ namespace Log {
 
    void cleanup () {
 
-      // Close the log file
+      // Final printing
+      write_single("\n" + std::string(79,'_') + "\nProgram Complete\n");
+
+      if (initialized) {
+         // If the log file is open, close it
 #ifdef PARALLEL_MPI
-      if (Driver::proc_ID == log_master) {
-         lout << std::endl << std::string(79, '_') << std::endl;
-         lout << "Program complete" << std::endl;
-         lout.close();
-      }
-#else // PARALLEL_MPI
-      lout << std::endl << std::string(79, '_') << std::endl;
-      lout << "Program complete" << std::endl;
-      lout.close();
+         if (Driver::proc_ID == log_master) {
 #endif // PARALLEL_MPI
+            lout.close();
+            initialized = false;
+#ifdef PARALLEL_MPI
+         }
+#endif // PARALLEL_MPI
+      } else {
+         // If the log file was never opened, print the buffer to the screen
+         std::cout << buffer.str();
+         buffer.clear();
+         buffer.str("");
+      }
 
    }
 
    // =========================================================================
    // Write to the log file
-
-   void write_single(std::string message) {
-#ifdef PARALLEL_MPI
-      if (Driver::proc_ID == log_master) {
-         lout << message;
-      }
-#else // PARALLEL_MPI
-      lout << message;
-#endif // PARALLEL_MPI
-   }
 
    void write_all(std::string message) {
 #ifdef PARALLEL_MPI
@@ -111,12 +119,12 @@ namespace Log {
                if (recv_buf[i*max_length+j] == '\0') {
                   break;
                }
-               lout << recv_buf[i*max_length+j];
+               write_single(recv_buf[i*max_length+j]);
             }
          }
       }
 #else // PARALLEL_MPI
-      lout << message;
+      write_single(message);
 #endif // PARALLEL_MPI
    }
 

@@ -2,6 +2,7 @@
 
 // STL includes
 #include <cmath>
+#include <exception>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -20,6 +21,7 @@
 #include "Driver.hpp"
 #include "Grid.hpp"
 #include "GridVars.hpp"
+#include "Hydro.hpp"
 #include "Log.hpp"
 #include "Parameters.hpp"
 #include "Support.hpp"
@@ -28,19 +30,36 @@ namespace fs = boost::filesystem;
 
 namespace Grid {
 
+   // =========================================================================
    // component-scope variables
-   DelayedConst<unsigned int> Ng; // number of guard cells around the borders
 
-   // number of internal (non-guard) cells
+   // Number of guard (aka ghost) cells around the borders
+   DelayedConst<unsigned int> Ng;
+
+   // Should the guard cells be written?
+   DelayedConst<bool> write_guard;
+
+   // Number of internal (non-guard) cells
    DelayedConst<unsigned int> Nx_global; // globally
    DelayedConst<unsigned int> Nx_local;  // on this processor
 
-   DelayedConst<double> xmin, xmax;   // limits in the x direction
-   DelayedConst<double> dx;           // grid spacing in the x direction
+   // Upper and lower limits
+   DelayedConst<double> xmin, xmax;
 
-   CellVar x;             // array of x coordinates
-   CellVar data;          // the data grid
+   // Grid spacing
+   DelayedConst<double> dx;
+
+   // Array of coordinates
+   CellVar x;
+
+   // Data grid
+   CellVar data;
+
+   // Indices of arrays
    DelayedConst<int> ilo, ihi; // arrays include indices ilo to ihi-1
+
+   // The processor IDs of the lower and upper neighbors
+   DelayedConst<int> neigh_lo, neigh_hi;
 
    // =========================================================================
    // Set up
@@ -48,64 +67,69 @@ namespace Grid {
    void setup () {
 
       // ----------------------------------------------------------------------
-      // Declare variables
-
-      std::stringstream ss;
-
-      // ----------------------------------------------------------------------
       // Get parameters
 
       // Number of guard cells
-      Ng = 1;  // TODO - Grid is initialized before Hydro, but Hydro may have
-               // to insist on a minimum Ng --- perhaps have some const in
-               // Hydro that Grid reads and increases Ng if necessary?
+      Ng = fmax(1, Hydro::min_guard);
+
+      // Should the guard cells be written?
+      write_guard = Parameters::get_optional<bool>("Grid.write_guard", false);
 
       // Number of internal cells
-      Nx_global =
-         Parameters::parameter_without_default<unsigned int>("Grid.Nx");
+      Nx_global = Parameters::get_required<unsigned int>("Grid.Nx");
 
       // Limits
-      xmin = Parameters::parameter_without_default<double>("Grid.xmin");
-      xmax = Parameters::parameter_without_default<double>("Grid.xmax");
+      xmin = Parameters::get_required<double>("Grid.xmin");
+      xmax = Parameters::get_required<double>("Grid.xmax");
 
       // ----------------------------------------------------------------------
       // Set up grid
 
       // Coordinates
       dx = (xmax - xmin) / Nx_global;
+
 #ifdef PARALLEL_MPI
-      ilo = (Nx_global *  Driver::proc_ID   ) / Driver::n_procs - Ng;
-      ihi = (Nx_global * (Driver::proc_ID+1)) / Driver::n_procs + Ng;
-      Nx_local = ihi - ilo - 2*Ng;
-      ss << "Processor " << Driver::proc_ID << " : ";
-      ss << "i = <" << ilo << " (" << ilo+Ng;
-      ss << "," << ihi-Ng-1 << ") " << ihi-1 << ">";
-      ss << std::endl;
+      // Determine neighbors
+      if (Driver::proc_ID == 0) {
+         neigh_lo = Driver::n_procs - 1;
+      } else {
+         neigh_lo = Driver::proc_ID - 1;
+      }
+      if (Driver::proc_ID == Driver::n_procs - 1) {
+         neigh_hi = 0;
+      } else {
+         neigh_hi = Driver::proc_ID + 1;
+      }
+      // Print a summary of neighbors
+      Log::write_single(std::string(79,'_') + "\n");
+      Log::write_single("MPI Structure:\n\n");
+      std::stringstream ss;
+      ss << "Neighbors : < " << neigh_lo << " | " << Driver::proc_ID;
+      ss << " | " << neigh_hi << " >" << std::endl;
       Log::write_all(ss.str());
       Log::write_single("\n");
+
+      // Compute limits
+      ilo = (Nx_global *  Driver::proc_ID   ) / Driver::n_procs - Ng;
+      ihi = (Nx_global * (Driver::proc_ID+1)) / Driver::n_procs + Ng;
+      // Compute size
+      Nx_local = ihi - ilo - 2*Ng;
 #else // PARALLEL_MPI
+      // Compute limits
       ilo = 0         - Ng;
       ihi = Nx_global + Ng;
+      // Compute size
       Nx_local = Nx_global;
 #endif // end ifdef PARALLEL_MPI
-      // TODO : I should make sure that Nx_local > Ng
+      // Verify Nx_local >= Ng or the communication becomes absurd
+      if (Nx_local < Ng) {
+         throw std::length_error("The number of local internal cells must exceed the number of guard cells");
+      }
+      // Fill the coordinates
       x.init();
       for (int i = ilo; i < ihi; i++) {
          x[i] = xmin + dx * (i + 0.5);
       }
-
-#ifdef PARALLEL_MPI
-      MPI_Barrier(MPI_COMM_WORLD); // to avoid conflict with previous write
-      ss.clear();
-      ss.str("");
-      ss << "Processor " << Driver::proc_ID << " : ";
-      ss << "x = <" << x[ilo] << " (" << x[ilo+Ng];
-      ss << "," << x[ihi-Ng-1] << ") " << x[ihi-1] << ">";
-      ss << std::endl;
-      Log::write_all(ss.str());
-      Log::write_single("\n");
-#endif // PARALLEL_MPI
-
 
       // Set up the grid
       data.init();
@@ -116,7 +140,8 @@ namespace Grid {
    // Clean up
 
    void cleanup () {
-      // Does nothing
+      // Does nothing; the grids will call their destructors when they go out
+      // of scope, and nothing else needs to be done here.
    }
 
    // =========================================================================
@@ -144,14 +169,14 @@ namespace Grid {
          }
       }
       // Asynchronous receives
-      MPI_Irecv(&lo_recv, Ng, MPI_DOUBLE, Driver::neigh_lo, pass_up,
+      MPI_Irecv(&lo_recv, Ng, MPI_DOUBLE, neigh_lo, pass_up,
             MPI_COMM_WORLD, &requests[0]);
-      MPI_Irecv(&hi_recv, Ng, MPI_DOUBLE, Driver::neigh_hi, pass_down,
+      MPI_Irecv(&hi_recv, Ng, MPI_DOUBLE, neigh_hi, pass_down,
             MPI_COMM_WORLD, &requests[1]);
       // Asynchronous sends
-      MPI_Isend(&lo_send, Ng, MPI_DOUBLE, Driver::neigh_lo, pass_down,
+      MPI_Isend(&lo_send, Ng, MPI_DOUBLE, neigh_lo, pass_down,
             MPI_COMM_WORLD, &requests[2]);
-      MPI_Isend(&hi_send, Ng, MPI_DOUBLE, Driver::neigh_hi, pass_up,
+      MPI_Isend(&hi_send, Ng, MPI_DOUBLE, neigh_hi, pass_up,
             MPI_COMM_WORLD, &requests[3]);
       // Wait for sends and receives to finish
       mpi_return = MPI_Waitall(4, requests, statuses);
@@ -195,25 +220,30 @@ namespace Grid {
       // Write the output
 
       // Create the subdirectory for the current output
-      ss.str("");
       ss.clear();
+      ss.str("");
       ss << std::setfill('0') << std::setw(Driver::n_width) << Driver::n_step;
       ss >> dirname;
       dirname = Driver::output_dir + "step_" + dirname;
-      MPI_Barrier(MPI_COMM_WORLD);
+#ifdef PARALLEL_MPI
       if (Driver::proc_ID == 0) {
+#endif // ifdef PARALLEL_MPI
          if (fs::exists(dirname)) { // Remove existing folder with same name
             fs::remove_all(fs::path(dirname));
          }
+         fs::create_directories(dirname);    // Create the new directory
+#ifdef PARALLEL_MPI
       }
+      // Sync to ensure directory exist before writing begins
       MPI_Barrier(MPI_COMM_WORLD);
-      fs::create_directories(dirname);    // Create the new directory
+#endif // ifdef PARALLEL_MPI
 
       // Write the important header information
       filename = dirname + "/header.txt";
       fout.open(filename.c_str());
-      fout << "time = " << Driver::time << std::endl;
-      fout << "step = " << Driver::n_step << std::endl;
+      fout << "time        = " << Driver::time << std::endl;
+      fout << "step        = " << Driver::n_step << std::endl;
+      fout << "write_guard = " << write_guard << std::endl;
       fout.close();
 
       // Write the data
@@ -228,8 +258,16 @@ namespace Grid {
 #endif // PARALLEL_MPI
       fout.open(filename.c_str());
       fout << "# position" << std::endl << "# data" << std::endl;
-      //for (int i = ilo+Ng; i < ihi-Ng; i++) { // TODO - print guard optional
-      for (int i = ilo; i < ihi; i++) {
+      int ilim_lo;
+      int ilim_hi;
+      if (write_guard) {
+         ilim_lo = ilo;
+         ilim_hi = ihi;
+      } else {
+         ilim_lo = ilo+Ng;
+         ilim_hi = ihi-Ng;
+      }
+      for (int i = ilim_lo; i < ilim_hi; i++) {
          fout << x[i] << "   " << data[i] << std::endl;
       }
       fout.close();
@@ -241,42 +279,71 @@ namespace Grid {
    // =========================================================================
    // Load data from a file
 
-   // TODO --- redistribute to a different number of cores
+   // TODO --- allow redistribution to a different number of cores
    void read_data() {
 
       // Declare variables ----------------------------------------------------
 
       std::size_t pos;
-      std::string filename, line, junk_string;
+      std::string filename, line;
+      std::string line_key, line_val;
       std::ifstream fin;
+      std::stringstream ss;
       int i;
       double xin, din;
       std::vector<double> x_vec, data_vec;
+      bool read_guard = false;
 
       // Process the header file ----------------------------------------------
 
-      filename = Driver::restart_dir + "/header.txt";
+      // Make sure the file exists
+      filename = Driver::restart_dir + "header.txt";
+      if (!fs::exists(filename)) {
+         throw std::ios_base::failure("Could not find header file.");
+      }
+
+      // Get the important info from the file
       fin.open(filename.c_str());
       while (std::getline(fin, line)) {
          pos = line.find("=") + 1;
-         if (line.find("time =") != std::string::npos) {
-            std::istringstream iss(line.substr(pos));
-            iss >> Driver::time;
-         } else if (line.find("step =") != std::string::npos) {
-            std::istringstream iss(line.substr(pos));
-            iss >> Driver::n_step;
+         line_key = line.substr(0,pos);
+         line_val = line.substr(pos);
+         if (line_key.find("time") != std::string::npos) {
+            ss.clear();
+            ss.str(line_val);
+            ss >> Driver::time;
+         } else if (line_key.find("step") != std::string::npos) {
+            ss.clear();
+            ss.str(line_val);
+            ss >> Driver::n_step;
+         } else if (line_key.find("write_guard") != std::string::npos) {
+            ss.clear();
+            ss.str(line_val);
+            ss >> read_guard;
          }
       }
       fin.close();
+
+      // Make a note in the log file about restarting
+      ss.clear();
+      ss.str("");
+      ss << "\nRestarting from step " << Driver::n_step;
+      ss << " and time " << Driver::time << ".\n\n";
+      Log::write_single(std::string(79,'_')+"\n");
+      Log::write_single(ss.str());
 
       // Load the data file ---------------------------------------------------
 
 #ifdef PARALLEL_MPI
       // Loop over all files in restart_dir to find one that matches
       // "grid_#.dat" with the number matching proc_ID
+      // --> Have to loop in case the number of extra zeros padded onto the
+      //     front of the processor ID is not the same now as when the files
+      //     were written.
       fs::directory_iterator end;   // no argument to constructor => end iter
       std::string path, num_str;
       int num_int;
+      bool file_not_found = true;
       for (fs::directory_iterator iter(Driver::restart_dir);
             iter != end; iter++) {
          path = (*iter).path().string();
@@ -287,12 +354,19 @@ namespace Grid {
          num_str = path.substr(5,path.find_last_of(".")-5);
          std::stringstream ss(num_str);
          if ((ss >> num_int) && (num_int == Driver::proc_ID)) {
-            filename = Driver::restart_dir + "/grid_" + num_str + ".dat";
+            filename = Driver::restart_dir + "grid_" + num_str + ".dat";
+            file_not_found = false;
             break;
          }
       }
+      if (file_not_found) {
+         throw std::ios_base::failure("Could not find data file.");
+      }
 #else // PARALLEL_MPI
       filename = Driver::restart_dir + "/grid.dat";
+      if (!fs::exists(filename)) {
+         throw std::ios_base::failure("Could not find data file.");
+      }
 #endif // PARALLEL_MPI
       fin.open(filename.c_str());
       while (std::getline(fin, line)) {
@@ -307,20 +381,24 @@ namespace Grid {
 
       // Store to Grid --------------------------------------------------------
 
-      /*if (x_vec.size() == Nx_local) {   // TODO - check if write_guard or not
-         for (int i = 0; i < Nx_local; i++) {
-            x[ilo+Ng+i]    = x_vec[i];
-            data[ilo+Ng+i] = data_vec[i];
-         }*/
-      if (x_vec.size() == Nx_local+2*Ng) {
-         for (int i = 0; i < Nx_local+2*Ng; i++) {
-            x[ilo+i]    = x_vec[i];
-            data[ilo+i] = data_vec[i];
+      int offset, Nread;
+      if (read_guard) {
+         offset = 0;
+         Nread  = Nx_local + 2*Ng;
+      } else {
+         offset = Ng;
+         Nread  = Nx_local;
+      }
+      if (x_vec.size() == Nread) {
+         for (int i = 0; i < Nread; i++) {
+            x[ilo+offset+i]    = x_vec[i];
+            data[ilo+offset+i] = data_vec[i];
          }
       } else {
-         std::cerr << Driver::proc_ID << " file has " << x_vec.size() << " cells" << std::endl;
-         //std::cerr << Driver::proc_ID << " code has " << Nx_local     << " cells" << std::endl; // TODO - this is only for testing - formalize or delete
-         std::cerr << Driver::proc_ID << " code has " << Nx_local+2*Ng<< " cells" << std::endl;
+         std::cerr << Driver::proc_ID << " file contains " << x_vec.size();
+         std::cerr << " cells" << std::endl;
+         std::cerr << Driver::proc_ID << " code expects  " << Nread;
+         std::cerr << " cells" << std::endl;
          throw std::length_error("length of file does not match Grid");
       }
 

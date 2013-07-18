@@ -1,6 +1,7 @@
 #include "Defines.hpp"
 
 // STL includes
+#include <sstream>
 #include <string>
 
 // Boost includes
@@ -10,6 +11,11 @@
 // Includes specific to this code
 
 namespace Log {
+
+   extern const unsigned int log_master;
+   extern bool initialized;
+   extern std::stringstream buffer;
+   extern std::ofstream lout;
 
    // =========================================================================
    // Set up
@@ -24,7 +30,21 @@ namespace Log {
    // =========================================================================
    // Write to the log file
 
-   void write_single(std::string message);
+   template <typename T>
+   void write_single(T message) {
+#ifdef PARALLEL_MPI
+      if (Driver::proc_ID == log_master) {
+#endif // PARALLEL_MPI
+         if (initialized) {
+            lout << message;
+         } else {
+            buffer << message;
+         }
+#ifdef PARALLEL_MPI
+      }
+#endif // PARALLEL_MPI
+   }
+
 
    void write_all(std::string message);
 
