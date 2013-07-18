@@ -32,7 +32,6 @@ namespace Driver {
 #ifdef PARALLEL_MPI
    extern DelayedConst<int> n_procs, proc_ID;
    extern DelayedConst<unsigned int> p_width;
-   extern DelayedConst<int> neigh_lo, neigh_hi;
 #endif // end ifdef PARALLEL_MPI
 
    // =========================================================================
@@ -53,7 +52,7 @@ namespace Driver {
    // =========================================================================
    // The main evolution loop
 
-   void main (int argc, char *argv[]);
+   void evolution_loop (int argc, char *argv[]);
 
 }
 

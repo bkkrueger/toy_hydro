@@ -23,8 +23,7 @@ namespace Parameters {
 
    // =========================================================================
    // Accessing parameters from the ptree; other components should use
-   // parameter_with_default and parameter_without_default instead of
-   // param_found or param_default.
+   // get_optional and get_required instead of param_found or param_default.
 
    // Marks a parameter as found (it exists in the configuration file and is
    // being used by the code)
@@ -62,7 +61,7 @@ namespace Parameters {
 
    // Fetch a parameter that has a default value
    template <class T>
-   T parameter_with_default(std::string param_name, T default_value) {
+   T get_optional (std::string param_name, T default_value) {
       T value;
       try {
          value = param_unused.get<T>(param_name);
@@ -84,7 +83,7 @@ namespace Parameters {
 
    // Fetch a parameter that has no default value (required parameter)
    template <class T>
-   T parameter_without_default(std::string param_name) {
+   T get_required (std::string param_name) {
       T value;
       try {
          value = param_unused.get<T>(param_name);

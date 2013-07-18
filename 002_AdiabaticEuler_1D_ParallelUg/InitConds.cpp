@@ -29,10 +29,10 @@ namespace InitConds {
       // ----------------------------------------------------------------------
       // Initialize the InitConds component
 
-      x0 = Parameters::parameter_with_default<double>("InitConds.x0", 0.00);
-      dx = Parameters::parameter_with_default<double>("InitConds.dx", 0.75);
-      y0 = Parameters::parameter_with_default<double>("InitConds.y0", 10.0);
-      dy = Parameters::parameter_with_default<double>("InitConds.dy", 1.25);
+      x0 = Parameters::get_optional<double>("InitConds.x0", 0.00);
+      dx = Parameters::get_optional<double>("InitConds.dx", 0.75);
+      y0 = Parameters::get_optional<double>("InitConds.y0", 10.0);
+      dy = Parameters::get_optional<double>("InitConds.dy", 1.25);
 
       // ----------------------------------------------------------------------
       // Set the initial data
