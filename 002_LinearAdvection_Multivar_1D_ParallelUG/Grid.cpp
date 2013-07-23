@@ -320,6 +320,21 @@ namespace Grid {
    // Load data from a file
 
    // TODO --- allow redistribution to a different number of cores
+   // New read:
+   // - generate a list of files
+   //   - list all files matching Driver::restart_dir + "grid*.dat" (catches
+   //     either grid.dat or all of grid_######.dat --- shouldn't have both
+   //     cases in one file or something is very wrong, but it will fail on the
+   //     check for x[i] = x_vector[i] below)
+   // - for each file in the list
+   //   - open the file
+   //   - read in the positions and the data row for the position and append to
+   //     vectors of position (as double) and data (as std::string)
+   // - verify you have the correct total number of cells
+   // - sort the two vectors using the position as the key (low x -> low i)
+   // - check positions: x[i] = x_vector[i] (accounting for finite precision)
+   // - process data lines ilo:ihi into cells ilo:ihi
+
    void read_data() {
 
       // Declare variables ----------------------------------------------------
