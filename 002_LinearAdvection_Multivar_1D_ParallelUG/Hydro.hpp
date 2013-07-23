@@ -16,6 +16,14 @@ namespace Hydro {
    extern double v_adv;     // The advection speed
    const int min_guard = 1;
 
+   // Variable indices
+   extern DelayedConst<unsigned int> idx_fld1, idx_fld2;
+
+   // =========================================================================
+   // Variable request list
+
+   void add_variables ();
+
    // =========================================================================
    // Set up
 

@@ -2,6 +2,7 @@
 #define SUPPORT_HPP
 
 #include <cassert>
+#include <stdexcept>
 
 // ============================================================================
 // A pseudo-const variable: It can be assigned once, but subsequently is

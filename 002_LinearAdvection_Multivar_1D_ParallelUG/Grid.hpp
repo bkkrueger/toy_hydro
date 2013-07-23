@@ -16,9 +16,6 @@ namespace Grid {
    // component-scope variables
    extern DelayedConst<unsigned int> Ng;     // the number of guard cells around the borders
 
-   // Should the guard cells be written?
-   extern DelayedConst<bool> write_guard;
-
    extern DelayedConst<unsigned int> Nx_global;
    extern DelayedConst<unsigned int> Nx_local;
    extern DelayedConst<double> xmin, xmax;   // limits in the x direction
@@ -30,6 +27,11 @@ namespace Grid {
 
    // The processor IDs of the lower and upper neighbors
    extern DelayedConst<int> neigh_lo, neigh_hi;
+
+   // =========================================================================
+   // Add a new variable to the Grid
+
+   unsigned int add_variable(std::string new_var);
 
    // =========================================================================
    // Set up

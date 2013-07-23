@@ -10,6 +10,7 @@
 #include "Grid.hpp"
 #include "GridVars.hpp"
 #include "Hydro.hpp"
+#include "Log.hpp"
 #include "Parameters.hpp"
 
 namespace Hydro {
@@ -17,6 +18,15 @@ namespace Hydro {
    // component-scope variables
    double v_adv;     // The advection speed
    double f_cfl;     // The maximum allowed fraction of CFL time step
+
+   // Variable indices
+   //DelayedConst<unsigned int> idx_fld1, idx_fld2;
+
+   // =========================================================================
+   // Variable request list
+
+   void add_variables () {
+   }
 
    // =========================================================================
    // Set up
@@ -28,6 +38,9 @@ namespace Hydro {
 
       // ----------------------------------------------------------------------
       // Initialize the Hydro component
+
+      Log::write_single(std::string(79,'_') + "\n");
+      Log::write_single("Hydro Setup:\n\n");
 
       // Advection speed
       v_adv = Parameters::get_optional<double>("Hydro.v_adv", 1.0);
@@ -102,19 +115,15 @@ namespace Hydro {
    void reconstruction(Grid::FaceVar &lower, Grid::FaceVar &upper) {
 
       // ----------------------------------------------------------------------
-      // Declare variables
-
-      int ilo = Grid::ilo;
-      int ihi = Grid::ihi - 1;
-
-      // ----------------------------------------------------------------------
       // Reconstruct
 
-      lower.init();
-      upper.init();
-      for (int i = ilo; i < ihi; i++) {
-         lower[i] = Grid::data[i];
-         upper[i] = Grid::data[i+1];
+      lower.init(Grid::n_vars);
+      upper.init(Grid::n_vars);
+      for (int i = Grid::ilo; i < Grid::ihi-1; i++) {
+         for (unsigned int v = 0; v < Grid::n_vars; v++) {
+            lower(i,v) = Grid::data(i,  v);
+            upper(i,v) = Grid::data(i+1,v);
+         }
       }
 
    }
@@ -126,27 +135,27 @@ namespace Hydro {
          Grid::FaceVar &fluxes) {
 
       // ----------------------------------------------------------------------
-      // Declare variables
-
-      int ilo = Grid::ilo;
-      int ihi = Grid::ihi - 1;
-
-      // ----------------------------------------------------------------------
       // Solve the Riemann problem
 
-      fluxes.init();
+      fluxes.init(Grid::n_vars);
 
       if (v_adv == 0) {
-         for (int i = ilo; i < ihi; i++) {
-            fluxes[i] = 0;
+         for (int i = Grid::ilo; i < Grid::ihi-1; i++) {
+            for (unsigned int v = 0; v < Grid::n_vars; v++) {
+               fluxes(i,v) = 0;
+            }
          }
       } else if (v_adv > 0) {
-         for (int i = ilo; i < ihi; i++) {
-            fluxes[i] = v_adv * lower[i];
+         for (int i = Grid::ilo; i < Grid::ihi-1; i++) {
+            for (unsigned int v = 0; v < Grid::n_vars; v++) {
+               fluxes(i,v) = v_adv * lower(i,v);
+            }
          }
-      } else {
-         for (int i = ilo; i < ihi; i++) {
-            fluxes[i] = v_adv * upper[i];
+      } else /*(v_adv < 0)*/ {
+         for (int i = Grid::ilo; i < Grid::ihi-1; i++) {
+            for (unsigned int v = 0; v < Grid::n_vars; v++) {
+               fluxes(i,v) = v_adv * upper(i,v);
+            }
          }
       }
 
@@ -160,23 +169,23 @@ namespace Hydro {
       // ----------------------------------------------------------------------
       // Declare variables
 
-      double dt = Driver::dt;
-      double dx = Grid::dx;
+      double dt_dx;
       double dQ;
-      int ilo = Grid::ilo;
-      int ihi = Grid::ihi - 1;
 
       // ----------------------------------------------------------------------
       // Update
 
-      for (int i = ilo; i < ihi; i++) {
-         dQ = fluxes[i] * dt / dx;
-         // Matter flowing out to the right
-         Grid::data[i] -= dQ;
-         // Matter flowing in from the left
-         Grid::data[i+1] += dQ;
+      dt_dx = Driver::dt / Grid::dx;
+      for (int i = Grid::ilo; i < Grid::ihi-1; i++) {
+         for (unsigned int v = 0; v < Grid::n_vars; v++) {
+            dQ = fluxes(i,v) * dt_dx;
+            // Matter flowing out to the right
+            Grid::data(i,v) -= dQ;
+            // Matter flowing in from the left
+            Grid::data(i+1,v) += dQ;
+         }
       }
 
-   }
+      }
 
 }

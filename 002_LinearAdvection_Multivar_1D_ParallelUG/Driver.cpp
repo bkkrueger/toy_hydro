@@ -58,8 +58,11 @@ namespace Driver {
    // The maximum simulation time
    DelayedConst<double> tmax;
 
-   // The output frequency (print every output_dt seconds)
+   // The output frequency
+   // - print every output_dt seconds
    double output_dt = 0.0;
+   // - print every output_dn steps
+   double output_dn = 0;
 
    // The directory to write the output files
    std::string output_dir;
@@ -156,11 +159,18 @@ namespace Driver {
       }
       // Ensure the output directory exists
       if (!boost::filesystem::exists(output_dir)) {
-         boost::filesystem::create_directories(output_dir);
+#ifdef PARALLEL_MPI
+         if (proc_ID == 0) {
+#endif
+            boost::filesystem::create_directories(output_dir);
+#ifdef PARALLEL_MPI
+         }
+#endif
       }
 
       // Time between saving output files
       output_dt = Parameters::get_optional<double>("Driver.output_dt", 0.0);
+      output_dn = Parameters::get_optional<unsigned int>("Driver.output_dn",0);
 
       // Restart from which directory
       restart_dir = Parameters::get_optional<std::string>(
@@ -184,9 +194,13 @@ namespace Driver {
 
       // Initialize
       Log::setup();
+Log::flush();
       Grid::setup();
+Log::flush();
       Hydro::setup();
+Log::flush();
       InitConds::setup();
+Log::flush();
 
       // Print the used parameters
       Parameters::print_used_parameters();
@@ -280,8 +294,8 @@ namespace Driver {
       // ----------------------------------------------------------------------
       // Declare variables
 
-      double prev_write = -1;
-      double curr_write;
+      int prev_write_dt, curr_write_dt;
+      int prev_write_dn, curr_write_dn;
       bool do_write;
       std::string outname;
       const unsigned int w = 13;
@@ -297,6 +311,9 @@ namespace Driver {
 
       Log::write_single(std::string(79,'_')+"\nEvolution loop:\n\n");
 
+      prev_write_dt = -1;
+      prev_write_dn = -1;
+
       for (; n_step < max_steps; n_step++) {
 
          // Exceeded maximum time
@@ -309,20 +326,33 @@ namespace Driver {
 
          // Controlled exit on an alternate condition (not time or steps, but
          // by an external action by the user)
-         // TODO - Controlled exit by user
+         if (boost::filesystem::exists("_force_quit")) {
+            Log::write_single("--- FORCED EXIT ---\n");
+            break;
+         }
 
          // Write output
          do_write = false;
+         // Write the first step
+         if (time == 0) {
+            do_write = true;
+         }
          // Condition based on time (print every output_dt seconds)
-         if ((time == 0) || (output_dt > 0)) {
-            curr_write = floor(time / output_dt);
-            if (curr_write > prev_write) {
+         if ((!do_write) && (output_dt > 0.0)) {
+            curr_write_dt = int(floor(time / output_dt));
+            if (curr_write_dt > prev_write_dt) {
                do_write = true;
             }
-            prev_write = curr_write;
+            prev_write_dt = curr_write_dt;
          }
-         // TODO - Output based on steps
-         // TODO - Output based on wall clock
+         // Condition based on number of steps
+         if ((!do_write) && (output_dn > 0)) {
+            curr_write_dn = n_step / output_dn;
+            if (curr_write_dn > prev_write_dn) {
+               do_write = true;
+            }
+            prev_write_dn = curr_write_dn;
+         }
          // Do the actual write
          if (do_write) {
             outname = Grid::write_data();
@@ -353,9 +383,6 @@ namespace Driver {
       }
 
       // Final write
-      if (Grid::write_guard) {
-         Grid::fill_boundary_conditions();
-      }
       ss.clear();
       ss.str("");
       ss << "n = " << std::setw(n_width) << std::right << n_step;
